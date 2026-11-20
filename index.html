@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KRILLION // VALVE EDITION</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: #010814;
+    color: #fff;
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+  .shell {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 16px;
+    width: 94%;
+    max-width: 640px;
+  }
+  .gauge {
+    width: 62px;
+    background: linear-gradient(180deg, #0284c7 0%, #0369a1 25%, #1e1b4b 65%, #020617 100%);
+    border: 2px solid rgba(56, 189, 189, 0.55);
+    border-radius: 20px;
+    padding: 12px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 0 35px rgba(2, 132, 199, 0.45), inset 0 0 20px rgba(0,0,0,0.7);
+  }
+  .gauge-label { font-size: 10px; font-weight: 900; }
+  .track { position: relative; flex: 1; width: 7px; background: rgba(255,255,255,0.14); border-radius: 99px; margin: 8px 0; }
+  .fill {
+    position: absolute; top: 0; left: 0; width: 100%; height: 0%;
+    background: linear-gradient(180deg, #38bdf8, #a78bfa, #f472b6);
+    border-radius: 99px; transition: height 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 12px #38bdf8;
+  }
+  .diver {
+    position: absolute; top: 0%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 22px; transition: top 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 0 8px #38bdf8);
+  }
+  .card {
+    flex: 1;
+    background: rgba(6, 22, 44, 0.9);
+    backdrop-filter: blur(14px);
+    border: 2px solid rgba(56, 189, 248, 0.6);
+    border-radius: 24px;
+    padding: 26px;
+    box-shadow: 0 25px 70px rgba(0,0,0,0.92), 0 0 50px rgba(56,189,248,0.22);
+    position: relative;
+  }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
+  .brand {
+    font-weight: 900; letter-spacing: 1.5px; font-size: 18px;
+    background: linear-gradient(90deg, #38bdf8, #f472b6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .meta-right { display: flex; align-items: center; gap: 8px; }
+  .best-pill {
+    font-size: 11px; font-weight: 800; color: #cbd5e1;
+    background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(148, 163, 184, 0.25);
+    padding: 5px 10px; border-radius: 99px;
+  }
+  .depth-pill {
+    background: linear-gradient(90deg, #0284c7, #7c3aed);
+    padding: 5px 14px; border-radius: 99px; font-size: 13px; font-weight: 900;
+    box-shadow: 0 0 16px rgba(124, 58, 237, 0.6); transition: transform 0.2s;
+  }
+  .icon-btn {
+    background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 9px; color: #cbd5e1; font-size: 13px; padding: 5px 9px; cursor: pointer;
+  }
+  .dots { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; }
+  .dot { height: 5px; flex: 1; border-radius: 99px; background: rgba(255,255,255,0.14); }
+  .timer-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: #94a3b8; margin-bottom: 8px; }
+  .tbar-bg { width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; margin-bottom: 16px; }
+  .tbar { width: 100%; height: 100%; background: linear-gradient(90deg, #38bdf8, #a78bfa, #f472b6); transition: width 1s linear; }
+  .prompt { font-size: 22px; font-weight: 900; margin-bottom: 14px; line-height: 1.25; }
+  .form-row { display: flex; gap: 8px; }
+  .ghost-wrap { position: relative; flex: 1; }
+  .ghost-layer {
+    position: absolute; inset: 0; padding: 13px 14px; font-size: 15px;
+    display: flex; align-items: center; pointer-events: none; white-space: pre; overflow: hidden;
+    border: 1.5px solid transparent; border-radius: 12px;
+  }
+  .ghost-typed { color: transparent; }
+  .ghost-pred { color: rgba(148, 163, 184, 0.55); }
+  .guess-inp {
+    position: relative; width: 100%; padding: 13px 14px; border-radius: 12px;
+    border: 1.5px solid rgba(56, 189, 248, 0.65); background: rgba(15, 23, 42, 0.72);
+    color: #fff; font-size: 15px; outline: none; font-family: inherit;
+  }
+  .dive-btn {
+    background: linear-gradient(135deg, #38bdf8, #6366f1); color: #fff; font-weight: 900;
+    font-size: 14px; border: none; border-radius: 12px; padding: 0 20px; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(56, 189, 248, 0.45);
+  }
+  .hint-row { display: flex; justify-content: space-between; align-items: center; min-height: 22px; margin-top: 10px; font-size: 12px; }
+  .err-txt { font-weight: 900; letter-spacing: 0.8px; color: #f87171; }
+  .tab-tip { color: #94a3b8; font-weight: 600; }
+  .log-list { max-height: 250px; overflow-y: auto; margin-bottom: 14px; padding-right: 4px; }
+  .log-item {
+    background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.22);
+    padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; font-size: 12px;
+  }
+  .log-bot { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+  .again-btn {
+    width: 100%; padding: 13px; background: linear-gradient(135deg, #38bdf8, #818cf8, #f472b6);
+    color: #fff; font-weight: 900; font-size: 14px; letter-spacing: 0.6px;
+    border: none; border-radius: 12px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<canvas id="cvs"></canvas>
+<div class="shell" id="shell">
+  <div class="gauge">
+    <div class="gauge-label" style="color:#bae6fd">0m</div>
+    <div class="track">
+      <div class="fill" id="fillBar"></div>
+      <div class="diver" id="diver">🤿</div>
+    </div>
+    <div class="gauge-label" style="color:#f472b6">7km</div>
+  </div>
+  <div class="card" id="card">
+    <div class="top-bar">
+      <div class="brand">KRILLION // VALVE</div>
+      <div class="meta-right">
+        <span class="best-pill" id="bestPill">Best: 0m</span>
+        <span class="depth-pill" id="depthPill">0m</span>
+        <button class="icon-btn" id="muteBtn" title="Toggle Sound">🔊</button>
+      </div>
+    </div>
+    <div id="body"></div>
+  </div>
+</div>
+
+<script>
+const DB = {
+  "CS2 / CS:GO Map": ["Dust2","Mirage","Inferno","Nuke","Overpass","Vertigo","Ancient","Anubis","Train","Cache","Cobblestone","Aztec","Office","Italy","Agency","Canals","Tuscan"],
+  "CS2 / CS:GO Weapon": ["AK-47","AWP","M4A4","M4A1-S","Desert Eagle","USP-S","Glock-18","MP9","MAC-10","Galil AR","FAMAS","P90","UMP-45","SSG 08","XM1014","MAG-7","Nova","Five-SeveN","Tec-9","CZ75-Auto","Negev","M249","Zeus x27"],
+  "Portal Character / Bot": ["Chell","GLaDOS","Wheatley","Atlas","P-body","Cave Johnson","Caroline","Turret","Defective Turret","Frankenturret","Core","Space Core","Fact Core","Adventure Core"],
+  "Portal Test / Mechanic": ["Portal Gun","Weighted Storage Cube","Companion Cube","Repulsion Gel","Propulsion Gel","Conversion Gel","Hard Light Bridge","Excursion Funnel","Aerial Faith Plate","Thermal Discouragement Beam","Laser Relay","Fizzler","Aperture Science","Neurotoxin"],
+  "Half-Life Character": ["Gordon Freeman","Alyx Vance","The G-Man","Barney Calhoun","Eli Vance","Isaac Kleiner","Father Grigori","Judith Mossman","Breen","Vortigaunt","Antlion","Headcrab","Combine Soldier","Strider","Dog"],
+  "Half-Life Weapon / Gear": ["Crowbar","Gravity Gun","HEV Suit","Tau Cannon","Gluon Gun","Pulse Rifle","Crossbow","SPAS-12","Bugbait","Submachine Gun","357 Magnum","Hopper Mine","Manhack"],
+  "TF2 Class": ["Scout","Soldier","Pyro","Demoman","Heavy","Engineer","Medic","Sniper","Spy"],
+  "TF2 Weapon / Item": ["Scattergun","Rocket Launcher","Flame Thrower","Grenade Launcher","Minigun","Wrench","Medi Gun","Sniper Rifle","Invis Watch","Sandvich","Jarate","Bonk! Atomic Punch","Market Gardener","Dead Ringer","Kritzkrieg","Ubersaw"],
+  "Dota 2 Hero": ["Pudge","Invoker","Anti-Mage","Crystal Maiden","Juggernaut","Shadow Fiend","Axe","Rubick","Earthshaker","Phantom Assassin","Meepo","Techies","Lion","Drow Ranger","Sniper","Faceless Void","Queen of Pain","Storm Spirit"],
+  "Left 4 Dead Infected / Survivor": ["Coach","Nick","Ellis","Rochelle","Bill","Zoey","Francis","Louis","Tank","Witch","Hunter","Smoker","Boomer","Jockey","Spitter","Charger"],
+  "Valve Game / Title": ["Counter-Strike 2","Counter-Strike: Global Offensive","Portal","Portal 2","Half-Life","Half-Life 2","Team Fortress 2","Dota 2","Left 4 Dead","Left 4 Dead 2","Half-Life: Alyx","Counter-Strike: Source","Day of Defeat"],
+  "Steam Feature / Mode": ["Workshop","Competitive","Wingman","Premier","Deathmatch","Arms Race","Co-op","Survival","Scavenge","Versus","Sandbox","Trading Cards","Remote Play"]
+};
+
+const KEYS = Object.keys(DB);
+const POOL = [...KEYS, ...KEYS.map(k => "Classic " + k), ...KEYS.map(k => "Iconic " + k)];
+const pick7 = () => {
+  const s = new Set(), b = [...KEYS].sort(() => Math.random() - 0.5);
+  while (s.size < 7) {
+    const x = Math.random() < 0.7 ? b.pop() : POOL[Math.floor(Math.random() * POOL.length)];
+    if (x) s.add(x);
+  }
+  return [...s];
+};
+
+let ROUNDS = pick7(), idx = 0, depth = 0, timer = 25, iv, shakeIv, msgTimer, muted = false, actx, pulseR = 0, bursts = [], log = [];
+let bestDepth = Number(localStorage.getItem("kril_valve_best") || 0);
+
+const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
+let W = cvs.width = innerWidth, H = cvs.height = innerHeight;
+addEventListener("resize", () => { W = cvs.width = innerWidth; H = cvs.height = innerHeight; });
+
+const parts = Array.from({ length: 65 }, () => ({ x: Math.random()*W, y: Math.random()*H, r: 1+Math.random()*3.5, vy: 0.4+Math.random()*1.5, vx: (Math.random()-0.5)*0.6, bio: Math.random()>0.5 }));
+const jellies = Array.from({ length: 6 }, () => ({ x: Math.random()*W, y: Math.random()*H, s: 14+Math.random()*18, ph: Math.random()*6.28, vy: 0.25+Math.random()*0.35 }));
+
+function spawnBurst(col) {
+  const cols = ["#38bdf8", "#f472b6", "#a78bfa", "#34d399", "#fbbf24"];
+  for (let k = 0; k < 36; k++) {
+    const ang = Math.random() * Math.PI * 2, spd = 2 + Math.random() * 7;
+    bursts.push({ x: W/2, y: H/2, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd, life: 1, c: col || cols[k % cols.length], sz: 3 + Math.random()*4 });
+  }
+}
+
+function drawBg() {
+  const r = Math.min(1, depth / 7000);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `rgb(${Math.round(8*(1-r))},${Math.round(56*(1-r)+8*r)},${Math.round(108*(1-r)+26*r)})`);
+  g.addColorStop(1, "#01040c");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  if (pulseR > 0) {
+    ctx.beginPath(); ctx.arc(W/2, H/2, pulseR, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(56,189,248,${Math.max(0, 0.4 - pulseR/(W*0.7))})`;
+    ctx.lineWidth = 3.5; ctx.stroke(); pulseR += 14;
+    if (pulseR > W*0.7) pulseR = 0;
+  }
+  jellies.forEach(j => {
+    j.ph += 0.04; j.y -= j.vy;
+    if (j.y < -40) { j.y = H + 40; j.x = Math.random() * W; }
+    const w = j.s * (1 + Math.sin(j.ph)*0.15);
+    ctx.save(); ctx.translate(j.x, j.y);
+    ctx.fillStyle = `rgba(244,114,182,${0.09 + r*0.2})`;
+    ctx.beginPath(); ctx.arc(0, 0, w, Math.PI, 0); ctx.fill();
+    ctx.strokeStyle = `rgba(167,139,250,${0.14 + r*0.22})`; ctx.lineWidth = 1.5;
+    for (let k = -2; k <= 2; k++) {
+      ctx.beginPath(); ctx.moveTo(k*(w*0.3), 0);
+      ctx.quadraticCurveTo(k*(w*0.3)+Math.sin(j.ph+k)*5, j.s*0.8, k*(w*0.3), j.s*1.4); ctx.stroke();
+    }
+    ctx.restore();
+  });
+  parts.forEach(p => {
+    p.y -= p.vy; p.x += p.vx + Math.sin(p.y*0.02)*0.3;
+    if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = p.bio ? `rgba(52,211,153,${0.18 + r*0.45})` : "rgba(186,230,253,0.2)";
+    ctx.fill();
+  });
+  for (let b = bursts.length - 1; b >= 0; b--) {
+    const pt = bursts[b]; pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.14; pt.life -= 0.025;
+    if (pt.life <= 0) { bursts.splice(b, 1); continue; }
+    ctx.save(); ctx.globalAlpha = Math.max(0, pt.life); ctx.fillStyle = pt.c;
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.sz, 0, Math.PI*2); ctx.fill(); ctx.restore();
+  }
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+function sfx(tp) {
+  if (muted) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const n = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    if (tp === "tick") { o.type="sine"; o.frequency.setValueAtTime(920,n); g.gain.setValueAtTime(0.03,n); g.gain.exponentialRampToValueAtTime(0.001,n+0.05); o.start(n); o.stop(n+0.05); }
+    else if (tp === "sonar") { o.type="sine"; o.frequency.setValueAtTime(1240,n); o.frequency.exponentialRampToValueAtTime(620,n+0.4); g.gain.setValueAtTime(0.06,n); g.gain.exponentialRampToValueAtTime(0.001,n+0.4); o.start(n); o.stop(n+0.4); }
+    else if (tp === "dive") { o.type="triangle"; o.frequency.setValueAtTime(520,n); o.frequency.exponentialRampToValueAtTime(120,n+0.38); g.gain.setValueAtTime(0.14,n); g.gain.exponentialRampToValueAtTime(0.001,n+0.38); o.start(n); o.stop(n+0.38); }
+    else if (tp === "rare") { [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>{ const o2=actx.createOscillator(),g2=actx.createGain(); o2.type="triangle"; o2.frequency.setValueAtTime(f,n+i*0.065); g2.gain.setValueAtTime(0.09,n+i*0.065); g2.gain.exponentialRampToValueAtTime(0.001,n+i*0.065+0.45); o2.connect(g2); g2.connect(actx.destination); o2.start(n+i*0.065); o2.stop(n+i*0.065+0.45); }); }
+    else { o.type="sawtooth"; o.frequency.setValueAtTime(160,n); o.frequency.linearRampToValueAtTime(85,n+0.22); g.gain.setValueAtTime(0.09,n); g.gain.exponentialRampToValueAtTime(0.001,n+0.22); o.start(n); o.stop(n+0.22); }
+  } catch (e) {}
+}
+
+const card = document.getElementById("card"), body = document.getElementById("body");
+const depthPill = document.getElementById("depthPill"), bestPill = document.getElementById("bestPill");
+const fillBar = document.getElementById("fillBar"), diver = document.getElementById("diver");
+const muteBtn = document.getElementById("muteBtn");
+muteBtn.onclick = () => { muted = !muted; muteBtn.textContent = muted ? "🔇" : "🔊"; };
+
+function updateHUD() {
+  if (depth > bestDepth) { bestDepth = depth; localStorage.setItem("kril_valve_best", String(bestDepth)); }
+  bestPill.textContent = "Best: " + bestDepth.toLocaleString() + "m";
+  depthPill.textContent = depth.toLocaleString() + "m";
+  depthPill.style.transform = "scale(1.2)";
+  setTimeout(() => depthPill.style.transform = "scale(1)", 220);
+  const pct = Math.min(100, (depth / 7000) * 100);
+  fillBar.style.height = pct + "%"; diver.style.top = pct + "%";
+}
+updateHUD();
+
+const tier = s => s >= 90 ? { lbl: "💎 ONE IN A KRILLION", col: "#f472b6" }
+  : s >= 75 ? { lbl: "🦑 ABYSSAL TRENCH", col: "#a78bfa" }
+  : s >= 55 ? { lbl: "🐙 TWILIGHT ZONE", col: "#38bdf8" }
+  : s >= 30 ? { lbl: "🐠 CORAL REEF", col: "#34d399" }
+  : { lbl: "🏖️ SHALLOW SURFACE", col: "#fbbf24" };
+
+const getPool = cat => {
+  const baseKey = cat.replace(/^(Classic|Iconic)\s+/i, "");
+  return (DB[baseKey] || []).map((name, i, arr) => {
+    const clean = name.trim(), low = clean.toLowerCase();
+    const rareBoost = Math.round((i / Math.max(1, arr.length - 1)) * 68);
+    return { name: clean, low, alt: low.endsWith("s") ? low.slice(0, -1) : low + "s", score: Math.min(100, 24 + rareBoost) };
+  });
+};
+
+function shakeCard(onDone) {
+  clearInterval(shakeIv); let n = 0;
+  shakeIv = setInterval(() => {
+    card.style.transform = `translate(${(Math.random()-0.5)*16}px, ${(Math.random()-0.5)*10}px)`;
+    if (++n > 7) { clearInterval(shakeIv); card.style.transform = "none"; if (onDone) onDone(); }
+  }, 35);
+}
+
+function showFlash(gain, tObj, popPct, matched, cb) {
+  body.innerHTML = `<div style="text-align:center;padding:20px 8px;">
+    <div style="display:inline-block;padding:6px 15px;border-radius:99px;font-size:12px;font-weight:900;letter-spacing:1px;color:${tObj.col};border:1.5px solid ${tObj.col};background:rgba(15,23,42,0.95);margin-bottom:12px;">${tObj.lbl}</div>
+    <div style="font-size:42px;font-weight:900;color:${gain>0?'#fff':'#f87171'};">${gain>0?'+'+gain+'m':'0m'}</div>
+    <div style="font-size:13px;color:#cbd5e1;margin-top:6px;">${gain>0?`Locked "${matched}" • Only ${popPct}% picked this`:'Time ran out!'}</div>
+  </div>`;
+  setTimeout(cb, 1150);
+}
+
+function renderQ() {
+  timer = 25; clearTimeout(msgTimer);
+  const cat = ROUNDS[idx], pool = getPool(cat);
+  const dotsHtml = ROUNDS.map((_, k) => `<span class="dot" style="background:${k<idx?'#38bdf8':k===idx?'#f472b6':'rgba(255,255,255,0.14)'}"></span>`).join("");
+  body.innerHTML = `
+    <div class="dots">${dotsHtml}</div>
+    <div class="timer-row"><span>ROUND ${idx+1} / ${ROUNDS.length}</span><span id="tm" style="color:#38bdf8">${timer}s</span></div>
+    <div class="tbar-bg"><div class="tbar" id="tbar"></div></div>
+    <div class="prompt">Name a ${cat}</div>
+    <form class="form-row" id="fm">
+      <div class="ghost-wrap">
+        <div class="ghost-layer" id="ghost"><span class="ghost-typed"></span><span class="ghost-pred"></span></div>
+        <input class="guess-inp" id="inp" type="text" placeholder="Type what you think it is..." autocomplete="off" spellcheck="false" />
+      </div>
+      <button class="dive-btn" type="submit">DIVE</button>
+    </form>
+    <div class="hint-row">
+      <span class="err-txt" id="err"></span>
+      <span class="tab-tip" id="tip"></span>
+    </div>`;
+
+  const inp = document.getElementById("inp"), fm = document.getElementById("fm");
+  const errEl = document.getElementById("err"), tipEl = document.getElementById("tip");
+  const gTyped = document.querySelector(".ghost-typed"), gPred = document.querySelector(".ghost-pred");
+  let currentPred = "";
+
+  const updateGhost = () => {
+    const val = inp.value, low = val.toLowerCase();
+    gTyped.textContent = val;
+    if (!low) { currentPred = ""; gPred.textContent = ""; tipEl.textContent = ""; return; }
+    const match = pool.find(x => x.low.startsWith(low) && x.low !== low);
+    if (match) {
+      currentPred = match.name;
+      gPred.textContent = match.name.slice(val.length);
+      tipEl.textContent = "Press Tab or → to complete";
+    } else {
+      currentPred = ""; gPred.textContent = ""; tipEl.textContent = "";
+    }
+  };
+
+  inp.addEventListener("input", updateGhost);
+  inp.addEventListener("keydown", e => {
+    if ((e.key === "Tab" || (e.key === "ArrowRight" && inp.selectionStart === inp.value.length)) && currentPred) {
+      e.preventDefault();
+      inp.value = currentPred;
+      updateGhost();
+    }
+  });
+
+  const showNotOne = () => {
+    sfx("miss"); clearTimeout(msgTimer);
+    errEl.textContent = "THAT'S NOT ONE!";
+    inp.style.borderColor = "#f87171"; card.style.borderColor = "#f87171";
+    shakeCard(() => { inp.style.borderColor = "rgba(56,189,248,0.65)"; card.style.borderColor = "rgba(56,189,248,0.6)"; });
+    msgTimer = setTimeout(() => { errEl.textContent = ""; }, 1350);
+  };
+
+  fm.onsubmit = e => {
+    e.preventDefault();
+    const raw = inp.value.trim().toLowerCase();
+    if (!raw) { showNotOne(); return; }
+    const hit = pool.find(x => x.low === raw || x.alt === raw);
+    if (!hit) { showNotOne(); return; }
+    clearInterval(iv); clearTimeout(msgTimer); pulseR = 12;
+    const tObj = tier(hit.score), gain = hit.score * 10, popPct = Math.max(1, 101 - hit.score);
+    sfx(hit.score >= 85 ? "rare" : "dive"); spawnBurst(tObj.col);
+    depth += gain; log.push({ p: "Name a " + cat, ans: hit.name, gain, tObj });
+    updateHUD(); idx++;
+    showFlash(gain, tObj, popPct, hit.name, () => idx < ROUNDS.length ? renderQ() : renderEnd());
+  };
+
+  inp.focus(); sfx("sonar");
+  iv = setInterval(() => {
+    timer--;
+    const tm = document.getElementById("tm"), tbar = document.getElementById("tbar");
+    if (tm) tm.textContent = timer + "s";
+    if (tbar) tbar.style.width = ((timer / 25) * 100) + "%";
+    if (timer <= 5 && tm && tbar) { tm.style.color = "#f87171"; tbar.style.background = "#f87171"; sfx("tick"); }
+    if (timer <= 0) {
+      clearInterval(iv); sfx("miss");
+      const tObj = { lbl: "⏱️ TIME'S UP", col: "#f87171" };
+      log.push({ p: "Name a " + cat, ans: "(No answer)", gain: 0, tObj });
+      idx++;
+      showFlash(0, tObj, 100, "", () => idx < ROUNDS.length ? renderQ() : renderEnd());
+    }
+  }, 1000);
+}
+
+function renderEnd() {
+  sfx("rare"); spawnBurst("#f472b6");
+  const itemsHtml = log.map(r => `
+    <div class="log-item">
+      <div style="color:#94a3b8;font-size:11px;">${r.p}</div>
+      <div class="log-bot"><strong>${r.ans}</strong><span style="color:${r.tObj.col};font-weight:800;">+${r.gain}m • ${r.tObj.lbl}</span></div>
+    </div>`).join("");
+  body.innerHTML = `
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:900;letter-spacing:1.4px;color:#f472b6;">DIVE COMPLETE</div>
+      <div style="font-size:36px;font-weight:900;background:linear-gradient(90deg,#38bdf8,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">${depth.toLocaleString()}m / 7,000m</div>
+    </div>
+    <div class="log-list">${itemsHtml}</div>
+    <button class="again-btn" id="again">🌊 DIVE AGAIN</button>`;
+  document.getElementById("again").onclick = () => { ROUNDS = pick7(); idx = 0; depth = 0; log = []; updateHUD(); renderQ(); };
+}
+
+renderQ();
+</script>
+</body>
+</html>
